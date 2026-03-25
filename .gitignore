@@ -1,0 +1,15 @@
+# dependencies
+node_modules/
+
+# build files
+.next/
+dist/
+
+# logs
+npm-debug.log*
+
+# env files
+.env
+
+# OS files
+.DS_Store
