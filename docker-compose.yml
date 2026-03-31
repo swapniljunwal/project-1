@@ -7,11 +7,13 @@ services:
       - "27017:27017"
 
   backend:
-    build: ./backend
-    ports:
-      - "5000:5000"
-    depends_on:
-      - mongo
+  build: ./backend
+  ports:
+    - "5000:5000"
+  environment:
+    - MONGO_URL=mongodb://mongo:27017/tasks
+  depends_on:
+    - mongo
 
   frontend:
     build: ./frontend
