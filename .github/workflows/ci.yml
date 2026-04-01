@@ -53,4 +53,4 @@ jobs:
                     cd your-project
                     git pull
                     npm install
-                    pm2 restart all    
+                    pm2 restart all   
