@@ -49,10 +49,10 @@ jobs:
                 username: ubuntu
                 key: ${{ secrets.EC2_SSH_KEY }}
                 script: |
-                    cd ai-task-manager
+                    cd project-1   # ✅ FIXED
                     git pull origin cd
 
-                    # 🔹 Backend
+                    # Backend
                     cd backend
                     npm install
                     pm2 describe backend > /dev/null
@@ -62,7 +62,7 @@ jobs:
                         pm2 reload backend
                     fi
 
-                    # 🔹 Frontend
+                    # Frontend
                     cd ../frontend
                     npm install
                     pm2 describe frontend > /dev/null
@@ -72,4 +72,4 @@ jobs:
                         pm2 reload frontend
                     fi
 
-                    pm2 save    
+                    pm2 save
