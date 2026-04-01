@@ -42,7 +42,6 @@ jobs:
             run: |
                 cd frontend
                 npm run build
-            # 🚀 DEPLOY STEP
         -   name: Deploy to EC2
             uses: appleboy/ssh-action@v1.0.0
             with:
@@ -50,7 +49,27 @@ jobs:
                 username: ubuntu
                 key: ${{ secrets.EC2_SSH_KEY }}
                 script: |
-                    cd your-project
-                    git pull
+                    cd ai-task-manager
+                    git pull origin cd
+
+                    # 🔹 Backend
+                    cd backend
                     npm install
-                    pm2 restart all   
+                    pm2 describe backend > /dev/null
+                    if [ $? -ne 0 ]; then
+                        pm2 start npm --name backend -- run start
+                    else
+                        pm2 reload backend
+                    fi
+
+                    # 🔹 Frontend
+                    cd ../frontend
+                    npm install
+                    pm2 describe frontend > /dev/null
+                    if [ $? -ne 0 ]; then
+                        pm2 start npm --name frontend -- run start
+                    else
+                        pm2 reload frontend
+                    fi
+
+                    pm2 save    
