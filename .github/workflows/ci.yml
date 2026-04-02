@@ -7,7 +7,8 @@ on:
             - develop_app
             - ci
             - cd
-
+            - Docker_Deplyment
+            - docker_cicd
 jobs:
     build:
         runs-on: ubuntu-latest
