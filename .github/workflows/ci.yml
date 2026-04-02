@@ -50,7 +50,7 @@ jobs:
                 username: ubuntu
                 key: ${{ secrets.EC2_SSH_KEY }}
                 script: |
-                    cd /home/ubuntu/project-1
+                    cd project-1
                     git pull origin docker_cicd
 
                     sudo docker compose down
