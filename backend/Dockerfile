@@ -1,23 +1,49 @@
-# Use Node.js
-FROM node:20
+# # Use Node.js
+# FROM node:20
 
-# Set working directory
+# # Set working directory
+# WORKDIR /app
+
+# # Copy package files
+# COPY package*.json ./
+
+# # Install dependencies
+# RUN npm install
+
+# # Copy all code
+# COPY . .
+
+# # Build app
+# RUN npm run build
+
+# # Expose port
+# EXPOSE 5000
+
+# # Start app
+# CMD ["npm", "run", "start"]
+
+# ---------- BUILD STAGE ----------
+FROM node:20 AS builder
+
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy all code
 COPY . .
 
-# Build app
 RUN npm run build
 
-# Expose port
+# ---------- PRODUCTION STAGE ----------
+FROM node:20
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --omit=dev
+
+COPY --from=builder /app/dist ./dist
+
 EXPOSE 5000
 
-# Start app
-CMD ["npm", "run", "start"]
+CMD ["node", "dist/main.js"]
