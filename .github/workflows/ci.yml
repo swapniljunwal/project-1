@@ -10,6 +10,7 @@ on:
             - Docker_Deplyment
             - docker_cicd
             - dockerhub
+            - image version
 
 jobs:
     build-and-deploy:
@@ -24,20 +25,20 @@ jobs:
             run: |
                 echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-        # 🐳 Build backend image
+        # 🐳 Build backend image with version
         -   name: Build Backend
-            run: docker build -t ${{ secrets.DOCKER_USERNAME }}/backend ./backend
+            run: docker build -t ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.sha }} ./backend
 
-        # 🐳 Build frontend image
+        # 🐳 Build frontend image with version
         -   name: Build Frontend
-            run: docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend ./frontend
+            run: docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.sha }} ./frontend
 
         # 🚀 Push images
         -   name: Push Backend
-            run: docker push ${{ secrets.DOCKER_USERNAME }}/backend
+            run: docker push ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.sha }}
 
         -   name: Push Frontend
-            run: docker push ${{ secrets.DOCKER_USERNAME }}/frontend
+            run: docker push ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.sha }}
 
         # 🚀 Deploy on EC2
         -   name: Deploy via SSH
@@ -49,9 +50,13 @@ jobs:
                 script: |
                     cd /home/ubuntu/project-1
 
+                    # ✅ Step 4: define TAG
+                    export TAG=${{ github.sha }}
+
                     sudo docker compose down
 
-                    sudo docker pull ${{ secrets.DOCKER_USERNAME }}/backend
-                    sudo docker pull ${{ secrets.DOCKER_USERNAME }}/frontend
+                    # ✅ Step 2: use TAG
+                    sudo docker pull ${{ secrets.DOCKER_USERNAME }}/backend:$TAG
+                    sudo docker pull ${{ secrets.DOCKER_USERNAME }}/frontend:$TAG
 
                     sudo docker compose up -d
