@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: Docker CI/CD
 
 on:
     push:
@@ -9,49 +9,49 @@ on:
             - cd
             - Docker_Deplyment
             - docker_cicd
+            - dockerhub
+
 jobs:
-    build:
+    build-and-deploy:
         runs-on: ubuntu-latest
 
         steps:
         -   name: Checkout code
             uses: actions/checkout@v3
 
-        -   name: Setup Node.js
-            uses: actions/setup-node@v3
-            with:
-                node-version: '20'
-
-
-        -   name: Install backend deps
+        # 🔐 Login to Docker Hub
+        -   name: Login to Docker Hub
             run: |
-                cd backend
-                npm install
+                echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-        -   name: Build backend
-            run: |
-                cd backend
-                npm run build
+        # 🐳 Build backend image
+        -   name: Build Backend
+            run: docker build -t ${{ secrets.DOCKER_USERNAME }}/backend ./backend
 
-        # Frontend
-        -   name: Install frontend deps
-            run: |
-                cd frontend
-                npm install
+        # 🐳 Build frontend image
+        -   name: Build Frontend
+            run: docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend ./frontend
 
-        -   name: Build frontend
-            run: |
-                cd frontend
-                npm run build
-        -   name: Deploy to EC2
+        # 🚀 Push images
+        -   name: Push Backend
+            run: docker push ${{ secrets.DOCKER_USERNAME }}/backend
+
+        -   name: Push Frontend
+            run: docker push ${{ secrets.DOCKER_USERNAME }}/frontend
+
+        # 🚀 Deploy on EC2
+        -   name: Deploy via SSH
             uses: appleboy/ssh-action@v1.0.0
             with:
-                host: ${{ secrets.EC2_HOST }}
+                host: ${{ secrets.HOST }}
                 username: ubuntu
-                key: ${{ secrets.EC2_SSH_KEY }}
+                key: ${{ secrets.SSH_KEY }}
                 script: |
-                    cd project-1
-                    git pull origin docker_cicd
+                    cd /home/ubuntu/project-1
 
                     sudo docker compose down
-                    sudo docker compose up -d --build
+
+                    sudo docker pull ${{ secrets.DOCKER_USERNAME }}/backend
+                    sudo docker pull ${{ secrets.DOCKER_USERNAME }}/frontend
+
+                    sudo docker compose up -d
