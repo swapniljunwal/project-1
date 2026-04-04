@@ -1,14 +1,41 @@
+# services:
+#   backend:
+#     image: swapnil1507/backend:${TAG}
+#     container_name: backend
+#     ports:
+#       - "5000:5000"
+#     restart: always
+
+#   frontend:
+#     image: swapnil1507/frontend:${TAG}
+#     container_name: frontend
+#     ports:
+#       - "3000:3000"
+#     restart: always
+
+# change this script yml for health check ******See this*********
+
 services:
   backend:
-    image: swapnil1507/backend
+    image: swapnil1507/backend:${TAG}
     container_name: backend
     ports:
       - "5000:5000"
     restart: always
-
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
   frontend:
-    image: swapnil1507/frontend
+    image: swapnil1507/frontend:${TAG}
     container_name: frontend
     ports:
       - "3000:3000"
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3    
