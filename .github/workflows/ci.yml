@@ -10,7 +10,7 @@ on:
             - Docker_Deplyment
             - docker_cicd
             - dockerhub
-            - image version
+            - image_version
 
 jobs:
     build-and-deploy:
