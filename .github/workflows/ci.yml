@@ -39,24 +39,49 @@ jobs:
 
 
 # ─────────────────────────────────────────────
+    # push:
+    #     name: Push Docker Images
+    #     needs: build
+    #     runs-on: ubuntu-latest
+
+    #     steps:
+    #     -   name: Checkout code
+    #         uses: actions/checkout@v4
+
+    #     -   name: Login to Docker Hub
+    #         run: |
+    #             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+    #     -   name: Push Backend
+    #         run: docker push $DOCKER_USERNAME/backend:$IMAGE_TAG
+
+    #     -   name: Push Frontend
+    #         run: docker push $DOCKER_USERNAME/frontend:$IMAGE_TAG
     push:
         name: Push Docker Images
         needs: build
         runs-on: ubuntu-latest
 
         steps:
-        -   name: Checkout code
-            uses: actions/checkout@v4
+            -   name: Checkout code
+                uses: actions/checkout@v4
 
-        -   name: Login to Docker Hub
-            run: |
-                echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
+            -   name: Login to Docker Hub
+                run: |
+                    echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-        -   name: Push Backend
-            run: docker push $DOCKER_USERNAME/backend:$IMAGE_TAG
+            # 🔥 BUILD AGAIN (IMPORTANT)
+            -   name: Build Backend
+                run: docker build -t $DOCKER_USERNAME/backend:$IMAGE_TAG ./backend
 
-        -   name: Push Frontend
-            run: docker push $DOCKER_USERNAME/frontend:$IMAGE_TAG
+            -   name: Build Frontend
+                run: docker build -t $DOCKER_USERNAME/frontend:$IMAGE_TAG ./frontend
+
+            -   name: Push Backend
+                run: docker push $DOCKER_USERNAME/backend:$IMAGE_TAG
+
+            -   name: Push Frontend
+                run: docker push $DOCKER_USERNAME/frontend:$IMAGE_TAG
 
 
 # ─────────────────────────────────────────────
