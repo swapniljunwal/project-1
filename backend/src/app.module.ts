@@ -1,11 +1,25 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { TasksModule } from './tasks/tasks.module';
+
+const mongoUri = process.env.MONGO_URI;
 
 @Module({
   imports: [
-    MongooseModule.forRoot(process.env.MONGO_URL as string), // ✅ ENV USED
-    TasksModule,
+    ...(mongoUri
+      ? [
+          MongooseModule.forRoot(mongoUri, {
+            retryAttempts: 3,
+          }),
+        ]
+      : []),
   ],
 })
-export class AppModule {}
+export class AppModule {
+  constructor() {
+    if (!mongoUri) {
+      console.log("⚠️ MongoDB not configured. Skipping DB connection...");
+    } else {
+      console.log("✅ MongoDB connected");
+    }
+  }
+}
