@@ -97,11 +97,16 @@ jobs:
                         host: ${{ secrets.EC2_HOST }}
                         username: ubuntu
                         key: ${{ secrets.EC2_SSH_KEY }}
-                        script: |
 
+                        # 👇 ADD THIS
+                        envs: DOCKER_USERNAME,IMAGE_TAG
+
+                        script: |
                             echo "🚀 Starting Deployment..."
 
-                            export TAG=${{ github.run_number }}
+                            export TAG=$IMAGE_TAG
+
+                            echo "Using Docker Username: $DOCKER_USERNAME"
 
                             # 🛑 Stop & remove old containers
                             echo "🛑 Cleaning old containers..."
