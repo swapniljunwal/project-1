@@ -22,100 +22,100 @@ jobs:
 
 # ─────────────────────────────────────────────
     build:
-    name: Build Docker Images
-    runs-on: ubuntu-latest
+        name: Build Docker Images
+        runs-on: ubuntu-latest
 
-    steps:
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+
+            -   name: Build Backend
+                run: |
+                    docker build -t $DOCKER_USERNAME/backend:$IMAGE_TAG ./backend
+
+            -   name: Build Frontend
+                run: |
+                    docker build -t $DOCKER_USERNAME/frontend:$IMAGE_TAG ./frontend
+
+
+# ─────────────────────────────────────────────
+    push:
+        name: Push Docker Images
+        needs: build
+        runs-on: ubuntu-latest
+
+        steps:
         -   name: Checkout code
             uses: actions/checkout@v4
 
-        -   name: Build Backend
+        -   name: Login to Docker Hub
             run: |
-                docker build -t $DOCKER_USERNAME/backend:$IMAGE_TAG ./backend
+                echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-        -   name: Build Frontend
-            run: |
-                docker build -t $DOCKER_USERNAME/frontend:$IMAGE_TAG ./frontend
+        -   name: Push Backend
+            run: docker push $DOCKER_USERNAME/backend:$IMAGE_TAG
+
+        -   name: Push Frontend
+            run: docker push $DOCKER_USERNAME/frontend:$IMAGE_TAG
 
 
 # ─────────────────────────────────────────────
-push:
-    name: Push Docker Images
-    needs: build
-    runs-on: ubuntu-latest
+    deploy:
+            name: Deploy on EC2 (No Compose)
+            needs: push
+            runs-on: ubuntu-latest
 
-    steps:
-    -   name: Checkout code
-        uses: actions/checkout@v4
+            steps:
+                -   name: Deploy via SSH
+                    uses: appleboy/ssh-action@v1.0.0
+                    with:
+                        host: ${{ secrets.EC2_HOST }}
+                        username: ubuntu
+                        key: ${{ secrets.EC2_SSH_KEY }}
+                        script: |
 
-    -   name: Login to Docker Hub
-        run: |
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                            echo "🚀 Starting Deployment..."
 
-    -   name: Push Backend
-        run: docker push $DOCKER_USERNAME/backend:$IMAGE_TAG
+                            export TAG=${{ github.run_number }}
 
-    -   name: Push Frontend
-        run: docker push $DOCKER_USERNAME/frontend:$IMAGE_TAG
+                            # 🛑 Stop & remove old containers
+                            echo "🛑 Cleaning old containers..."
+                            sudo docker stop backend || true
+                            sudo docker rm backend || true
 
+                            sudo docker stop frontend || true
+                            sudo docker rm frontend || true
 
-# ─────────────────────────────────────────────
-deploy:
-        name: Deploy on EC2 (No Compose)
-        needs: push
-        runs-on: ubuntu-latest
+                            # 🧹 Clean unused images
+                            sudo docker image prune -af
 
-    steps:
-        -   name: Deploy via SSH
-            uses: appleboy/ssh-action@v1.0.0
-            with:
-            host: ${{ secrets.EC2_HOST }}
-            username: ubuntu
-            key: ${{ secrets.EC2_SSH_KEY }}
-            script: |
+                            # 📥 Pull latest images
+                            echo "📥 Pulling images..."
+                            sudo docker pull $DOCKER_USERNAME/backend:$TAG
+                            sudo docker pull $DOCKER_USERNAME/frontend:$TAG
 
-                echo "🚀 Starting Deployment..."
+                            # 🚀 Run backend container
+                            echo "🚀 Starting backend..."
+                            sudo docker run -d \
+                            --name backend \
+                            -p 5000:5000 \
+                            --restart unless-stopped \
+                            $DOCKER_USERNAME/backend:$TAG
 
-                export TAG=${{ github.run_number }}
+                            # 🚀 Run frontend container
+                            echo "🚀 Starting frontend..."
+                            sudo docker run -d \
+                            --name frontend \
+                            -p 3000:3000 \
+                            --restart unless-stopped \
+                            $DOCKER_USERNAME/frontend:$TAG
 
-                # 🛑 Stop & remove old containers
-                echo "🛑 Cleaning old containers..."
-                sudo docker stop backend || true
-                sudo docker rm backend || true
+                            # 📋 Status check
+                            echo "📋 Running containers:"
+                            sudo docker ps
 
-                sudo docker stop frontend || true
-                sudo docker rm frontend || true
+                            echo "📜 Logs (last 10 lines):"
+                            sudo docker logs backend --tail 10 || true
+                            sudo docker logs frontend --tail 10 || true
 
-                # 🧹 Clean unused images
-                sudo docker image prune -af
-
-                # 📥 Pull latest images
-                echo "📥 Pulling images..."
-                sudo docker pull $DOCKER_USERNAME/backend:$TAG
-                sudo docker pull $DOCKER_USERNAME/frontend:$TAG
-
-                # 🚀 Run backend container
-                echo "🚀 Starting backend..."
-                sudo docker run -d \
-                --name backend \
-                -p 5000:5000 \
-                --restart unless-stopped \
-                $DOCKER_USERNAME/backend:$TAG
-
-                # 🚀 Run frontend container
-                echo "🚀 Starting frontend..."
-                sudo docker run -d \
-                --name frontend \
-                -p 3000:3000 \
-                --restart unless-stopped \
-                $DOCKER_USERNAME/frontend:$TAG
-
-                # 📋 Status check
-                echo "📋 Running containers:"
-                sudo docker ps
-
-                echo "📜 Logs (last 10 lines):"
-                sudo docker logs backend --tail 10 || true
-                sudo docker logs frontend --tail 10 || true
-
-                echo "✅ Deployment Completed!"
+                            echo "✅ Deployment Completed!"
