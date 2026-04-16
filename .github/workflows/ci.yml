@@ -149,34 +149,36 @@ jobs:
                 #             sudo docker logs frontend --tail 10 || true
 
                 #             echo "✅ Deployment Completed!"
-                        -   name: Deploy via SSH (Kubernetes)
-                            uses: appleboy/ssh-action@v1.0.0
-                            with:
-                                host: ${{ secrets.EC2_HOST }}
-                                username: ubuntu
-                                key: ${{ secrets.EC2_SSH_KEY }}
-                                envs: DOCKER_USERNAME,IMAGE_TAG
+                    -   name: Deploy via SSH (Kubernetes Clean)
+                        uses: appleboy/ssh-action@v1.0.0
+                        with:
+                            host: ${{ secrets.EC2_HOST }}
+                            username: ubuntu
+                            key: ${{ secrets.EC2_SSH_KEY }}
+                            envs: DOCKER_USERNAME,IMAGE_TAG
 
-                                script: |
-                                    echo "🚀 Kubernetes Deployment Started..."
+                            script: |
+                                echo "🚀 Kubernetes Deployment Started..."
 
-                                    if [ ! -d "project-1" ]; then
-                                        git clone https://github.com/swapniljunwal/project-1.git
-                                    fi
+                                export TAG=$IMAGE_TAG
 
-                                    cd project-1
-                                    git pull origin deploy_2
+                                echo "Using tag: $TAG"
 
-                                    export TAG=$IMAGE_TAG
+                                # 🔄 Update image directly in deployment
+                                kubectl set image deployment/backend \
+                                    backend=$DOCKER_USERNAME/backend:$TAG
 
-                                    echo "Using tag: $TAG"
+                                kubectl set image deployment/frontend \
+                                    frontend=$DOCKER_USERNAME/frontend:$TAG
 
-                                    sed -i "s|backend:.*|backend:$TAG|g" k8s/backend-deployment.yaml
-                                    sed -i "s|frontend:.*|frontend:$TAG|g" k8s/frontend-deployment.yaml
+                                # 🚀 Apply (if needed first time)
+                                kubectl apply -f ~/k8s/
 
-                                    kubectl apply -f k8s/
+                                # 📋 Check status
+                                kubectl rollout status deployment/backend
+                                kubectl rollout status deployment/frontend
 
-                                    kubectl get pods
-                                    kubectl get svc
+                                kubectl get pods
+                                kubectl get svc
 
-                                    echo "✅ Kubernetes Deployment Completed!"
+                                echo "✅ Kubernetes Deployment Completed!"
