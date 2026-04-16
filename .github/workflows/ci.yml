@@ -161,7 +161,7 @@ jobs:
                                     echo "🚀 Kubernetes Deployment Started..."
 
                                     if [ ! -d "ai-task-manager" ]; then
-                                        git clone https://github.com/<your-username>/ai-task-manager.git
+                                        git clone https://github.com/swapniljunwal/project-1.git
                                     fi
 
                                     cd ai-task-manager
