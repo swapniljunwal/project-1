@@ -160,20 +160,22 @@ jobs:
                                 script: |
                                     echo "🚀 Kubernetes Deployment Started..."
 
+                                    if [ ! -d "ai-task-manager" ]; then
+                                        git clone https://github.com/<your-username>/ai-task-manager.git
+                                    fi
+
                                     cd ai-task-manager
+                                    git pull origin main
 
                                     export TAG=$IMAGE_TAG
 
                                     echo "Using tag: $TAG"
 
-                                    # 🔄 Update image dynamically
                                     sed -i "s|backend:.*|backend:$TAG|g" k8s/backend-deployment.yaml
                                     sed -i "s|frontend:.*|frontend:$TAG|g" k8s/frontend-deployment.yaml
 
-                                    # 🚀 Apply Kubernetes configs
                                     kubectl apply -f k8s/
 
-                                    # 📋 Check status
                                     kubectl get pods
                                     kubectl get svc
 
