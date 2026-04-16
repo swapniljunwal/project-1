@@ -160,12 +160,12 @@ jobs:
                                 script: |
                                     echo "🚀 Kubernetes Deployment Started..."
 
-                                    if [ ! -d "ai-task-manager" ]; then
+                                    if [ ! -d "project-1" ]; then
                                         git clone https://github.com/swapniljunwal/project-1.git
                                     fi
 
-                                    cd ai-task-manager
-                                    git pull origin main
+                                    cd project-1
+                                    git pull origin deploy_2
 
                                     export TAG=$IMAGE_TAG
 
