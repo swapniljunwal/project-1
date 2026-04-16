@@ -172,7 +172,7 @@ jobs:
                                     frontend=$DOCKER_USERNAME/frontend:$TAG
 
                                 # 🚀 Apply (if needed first time)
-                                kubectl apply -f ~/k8s/
+                                kubectl apply -f 
 
                                 # 📋 Check status
                                 kubectl rollout status deployment/backend
