@@ -183,7 +183,7 @@
 
 #                                 echo "✅ Kubernetes Deployment Completed!"
 
-name: DevOps CI/CD
+name: CI/CD Docker to Minikube
 
 on:
     push:
@@ -192,65 +192,61 @@ on:
         - deploy_2
 
 jobs:
-
     build:
         runs-on: ubuntu-latest
 
         steps:
-            -   name: Checkout
-                uses: actions/checkout@v3
+        -   name: Checkout code
+            uses: actions/checkout@v4
 
-            -   name: Login Docker Hub
-                run: |
-                    echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        -   name: Login to Docker Hub
+            run: |
+                echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-            -   name: Build & Push Backend
-                run: |
-                    docker build -t ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.run_number }} ./backend
-                    docker push ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.run_number }}
+        -   name: Build and Push backend image
+            run: |
+                docker build -t ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.run_number }} ./backend
+                docker push ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.run_number }}
 
-            -   name: Build & Push Frontend
-                run: |
-                    docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }} ./frontend
-                    docker push ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }}
+        -   name: Build and Push frontend image
+            run: |
+                docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }} ./frontend
+                docker push ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }}
 
     deploy:
         needs: build
         runs-on: ubuntu-latest
 
         steps:
-        -   name: Checkout
-            uses: actions/checkout@v3
+        -   name: Checkout code
+            uses: actions/checkout@v4
 
-        -   name: Replace Image Tag
+        -   name: Update image tags
             run: |
-                sed -i "s|backend:.*|backend:${{ github.run_number }}|g" k8s/backend-deployment.yaml
-                sed -i "s|frontend:.*|frontend:${{ github.run_number }}|g" k8s/frontend-deployment.yaml
+                sed -i "s|image: .*backend:.*|image: ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.run_number }}|g" k8s/backend-deployment.yaml
+                sed -i "s|image: .*frontend:.*|image: ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }}|g" k8s/frontend-deployment.yaml
 
-        -   name: Deploy to EC2 Kubernetes
+        -   name: Copy k8s files to EC2
+            uses: appleboy/scp-action@v0.1.7
+            with:
+                host: ${{ secrets.EC2_HOST }}
+                username: ubuntu
+                key: ${{ secrets.EC2_SSH_KEY }}
+                source: "k8s/*"
+                target: "/tmp/c-k8s"
+
+        -   name: Deploy to Minikube
             uses: appleboy/ssh-action@v1.0.0
             with:
                 host: ${{ secrets.EC2_HOST }}
                 username: ubuntu
                 key: ${{ secrets.EC2_SSH_KEY }}
-
                 script: |
-                    echo "🚀 Deploying to Kubernetes..."
+                    NAMESPACE=c-dev
 
-                    # Apply directly from STDIN (NO FILE STORAGE)
-                    cat <<EOF | kubectl apply -f -
-                    $(cat k8s/backend-deployment.yaml)
-                    ---
-                    $(cat k8s/backend-service.yaml)
-                    ---
-                    $(cat k8s/frontend-deployment.yaml)
-                    ---
-                    $(cat k8s/frontend-service.yaml)
-                    EOF
+                    kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
+                    kubectl apply -n $NAMESPACE -f /tmp/c-k8s/k8s
+                    kubectl get pods -n $NAMESPACE
+                    kubectl get svc -n $NAMESPACE
 
-                    kubectl get pods
-                    kubectl get svc
-
-                    echo "✅ Deployment Done"
-
-                    
+                    rm -rf /tmp/c-k8s
