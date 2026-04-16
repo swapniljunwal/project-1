@@ -91,61 +91,90 @@ jobs:
             runs-on: ubuntu-latest
 
             steps:
-                -   name: Deploy via SSH
-                    uses: appleboy/ssh-action@v1.0.0
-                    with:
-                        host: ${{ secrets.EC2_HOST }}
-                        username: ubuntu
-                        key: ${{ secrets.EC2_SSH_KEY }}
+                # -   name: Deploy via SSH
+                #     uses: appleboy/ssh-action@v1.0.0
+                #     with:
+                #         host: ${{ secrets.EC2_HOST }}
+                #         username: ubuntu
+                #         key: ${{ secrets.EC2_SSH_KEY }}
 
-                        # 👇 ADD THIS
-                        envs: DOCKER_USERNAME,IMAGE_TAG
+                #         # 👇 ADD THIS
+                #         envs: DOCKER_USERNAME,IMAGE_TAG
 
-                        script: |
-                            echo "🚀 Starting Deployment..."
+                #         script: |
+                #             echo "🚀 Starting Deployment..."
 
-                            export TAG=$IMAGE_TAG
+                #             export TAG=$IMAGE_TAG
 
-                            echo "Using Docker Username: $DOCKER_USERNAME"
+                #             echo "Using Docker Username: $DOCKER_USERNAME"
 
-                            # 🛑 Stop & remove old containers
-                            echo "🛑 Cleaning old containers..."
-                            sudo docker stop backend || true
-                            sudo docker rm backend || true
+                #             # 🛑 Stop & remove old containers
+                #             echo "🛑 Cleaning old containers..."
+                #             sudo docker stop backend || true
+                #             sudo docker rm backend || true
 
-                            sudo docker stop frontend || true
-                            sudo docker rm frontend || true
+                #             sudo docker stop frontend || true
+                #             sudo docker rm frontend || true
 
-                            # 🧹 Clean unused images
-                            sudo docker image prune -af
+                #             # 🧹 Clean unused images
+                #             sudo docker image prune -af
 
-                            # 📥 Pull latest images
-                            echo "📥 Pulling images..."
-                            sudo docker pull $DOCKER_USERNAME/backend:$TAG
-                            sudo docker pull $DOCKER_USERNAME/frontend:$TAG
+                #             # 📥 Pull latest images
+                #             echo "📥 Pulling images..."
+                #             sudo docker pull $DOCKER_USERNAME/backend:$TAG
+                #             sudo docker pull $DOCKER_USERNAME/frontend:$TAG
 
-                            # 🚀 Run backend container
-                            echo "🚀 Starting backend..."
-                            sudo docker run -d \
-                            --name backend \
-                            -p 5000:5000 \
-                            --restart unless-stopped \
-                            $DOCKER_USERNAME/backend:$TAG
+                #             # 🚀 Run backend container
+                #             echo "🚀 Starting backend..."
+                #             sudo docker run -d \
+                #             --name backend \
+                #             -p 5000:5000 \
+                #             --restart unless-stopped \
+                #             $DOCKER_USERNAME/backend:$TAG
 
-                            # 🚀 Run frontend container
-                            echo "🚀 Starting frontend..."
-                            sudo docker run -d \
-                            --name frontend \
-                            -p 3000:3000 \
-                            --restart unless-stopped \
-                            $DOCKER_USERNAME/frontend:$TAG
+                #             # 🚀 Run frontend container
+                #             echo "🚀 Starting frontend..."
+                #             sudo docker run -d \
+                #             --name frontend \
+                #             -p 3000:3000 \
+                #             --restart unless-stopped \
+                #             $DOCKER_USERNAME/frontend:$TAG
 
-                            # 📋 Status check
-                            echo "📋 Running containers:"
-                            sudo docker ps
+                #             # 📋 Status check
+                #             echo "📋 Running containers:"
+                #             sudo docker ps
 
-                            echo "📜 Logs (last 10 lines):"
-                            sudo docker logs backend --tail 10 || true
-                            sudo docker logs frontend --tail 10 || true
+                #             echo "📜 Logs (last 10 lines):"
+                #             sudo docker logs backend --tail 10 || true
+                #             sudo docker logs frontend --tail 10 || true
 
-                            echo "✅ Deployment Completed!"
+                #             echo "✅ Deployment Completed!"
+                        -   name: Deploy via SSH (Kubernetes)
+                            uses: appleboy/ssh-action@v1.0.0
+                            with:
+                                host: ${{ secrets.EC2_HOST }}
+                                username: ubuntu
+                                key: ${{ secrets.EC2_SSH_KEY }}
+                                envs: DOCKER_USERNAME,IMAGE_TAG
+
+                                script: |
+                                    echo "🚀 Kubernetes Deployment Started..."
+
+                                    cd ai-task-manager
+
+                                    export TAG=$IMAGE_TAG
+
+                                    echo "Using tag: $TAG"
+
+                                    # 🔄 Update image dynamically
+                                    sed -i "s|backend:.*|backend:$TAG|g" k8s/backend-deployment.yaml
+                                    sed -i "s|frontend:.*|frontend:$TAG|g" k8s/frontend-deployment.yaml
+
+                                    # 🚀 Apply Kubernetes configs
+                                    kubectl apply -f k8s/
+
+                                    # 📋 Check status
+                                    kubectl get pods
+                                    kubectl get svc
+
+                                    echo "✅ Kubernetes Deployment Completed!"
