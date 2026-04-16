@@ -1,184 +1,256 @@
-name: Docker CI/CD (No Compose)
+# name: Docker CI/CD (No Compose)
+
+# on:
+#     push:
+#         branches:
+#         - main
+#         - develop_app
+#         - ci
+#         - cd
+#         - Docker_Deplyment
+#         - docker_cicd
+#         - dockerhub
+#         - image_version
+#         - deploy_2
+#     workflow_dispatch:
+
+# env:
+#     DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+#     IMAGE_TAG: ${{ github.run_number }}
+
+# jobs:
+
+# # ─────────────────────────────────────────────
+#     build:
+#         name: Build Docker Images
+#         runs-on: ubuntu-latest
+
+#         steps:
+#             -   name: Checkout code
+#                 uses: actions/checkout@v4
+
+#             -   name: Build Backend
+#                 run: |
+#                     docker build -t $DOCKER_USERNAME/backend:$IMAGE_TAG ./backend
+
+#             -   name: Build Frontend
+#                 run: |
+#                     docker build -t $DOCKER_USERNAME/frontend:$IMAGE_TAG ./frontend
+
+
+# # ─────────────────────────────────────────────
+#     # push:
+#     #     name: Push Docker Images
+#     #     needs: build
+#     #     runs-on: ubuntu-latest
+
+#     #     steps:
+#     #     -   name: Checkout code
+#     #         uses: actions/checkout@v4
+
+#     #     -   name: Login to Docker Hub
+#     #         run: |
+#     #             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+#     #     -   name: Push Backend
+#     #         run: docker push $DOCKER_USERNAME/backend:$IMAGE_TAG
+
+#     #     -   name: Push Frontend
+#     #         run: docker push $DOCKER_USERNAME/frontend:$IMAGE_TAG
+#     push:
+#         name: Push Docker Images
+#         needs: build
+#         runs-on: ubuntu-latest
+
+#         steps:
+#             -   name: Checkout code
+#                 uses: actions/checkout@v4
+
+#             -   name: Login to Docker Hub
+#                 run: |
+#                     echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+#             # 🔥 BUILD AGAIN (IMPORTANT)
+#             -   name: Build Backend
+#                 run: docker build -t $DOCKER_USERNAME/backend:$IMAGE_TAG ./backend
+
+#             -   name: Build Frontend
+#                 run: docker build -t $DOCKER_USERNAME/frontend:$IMAGE_TAG ./frontend
+
+#             -   name: Push Backend
+#                 run: docker push $DOCKER_USERNAME/backend:$IMAGE_TAG
+
+#             -   name: Push Frontend
+#                 run: docker push $DOCKER_USERNAME/frontend:$IMAGE_TAG
+
+
+# # ─────────────────────────────────────────────
+#     deploy:
+#             name: Deploy on EC2 (No Compose)
+#             needs: push
+#             runs-on: ubuntu-latest
+
+#             steps:
+#                 # -   name: Deploy via SSH
+#                 #     uses: appleboy/ssh-action@v1.0.0
+#                 #     with:
+#                 #         host: ${{ secrets.EC2_HOST }}
+#                 #         username: ubuntu
+#                 #         key: ${{ secrets.EC2_SSH_KEY }}
+
+#                 #         # 👇 ADD THIS
+#                 #         envs: DOCKER_USERNAME,IMAGE_TAG
+
+#                 #         script: |
+#                 #             echo "🚀 Starting Deployment..."
+
+#                 #             export TAG=$IMAGE_TAG
+
+#                 #             echo "Using Docker Username: $DOCKER_USERNAME"
+
+#                 #             # 🛑 Stop & remove old containers
+#                 #             echo "🛑 Cleaning old containers..."
+#                 #             sudo docker stop backend || true
+#                 #             sudo docker rm backend || true
+
+#                 #             sudo docker stop frontend || true
+#                 #             sudo docker rm frontend || true
+
+#                 #             # 🧹 Clean unused images
+#                 #             sudo docker image prune -af
+
+#                 #             # 📥 Pull latest images
+#                 #             echo "📥 Pulling images..."
+#                 #             sudo docker pull $DOCKER_USERNAME/backend:$TAG
+#                 #             sudo docker pull $DOCKER_USERNAME/frontend:$TAG
+
+#                 #             # 🚀 Run backend container
+#                 #             echo "🚀 Starting backend..."
+#                 #             sudo docker run -d \
+#                 #             --name backend \
+#                 #             -p 5000:5000 \
+#                 #             --restart unless-stopped \
+#                 #             $DOCKER_USERNAME/backend:$TAG
+
+#                 #             # 🚀 Run frontend container
+#                 #             echo "🚀 Starting frontend..."
+#                 #             sudo docker run -d \
+#                 #             --name frontend \
+#                 #             -p 3000:3000 \
+#                 #             --restart unless-stopped \
+#                 #             $DOCKER_USERNAME/frontend:$TAG
+
+#                 #             # 📋 Status check
+#                 #             echo "📋 Running containers:"
+#                 #             sudo docker ps
+
+#                 #             echo "📜 Logs (last 10 lines):"
+#                 #             sudo docker logs backend --tail 10 || true
+#                 #             sudo docker logs frontend --tail 10 || true
+
+#                 #             echo "✅ Deployment Completed!"
+#                     -   name: Deploy via SSH (Kubernetes Clean)
+#                         uses: appleboy/ssh-action@v1.0.0
+#                         with:
+#                             host: ${{ secrets.EC2_HOST }}
+#                             username: ubuntu
+#                             key: ${{ secrets.EC2_SSH_KEY }}
+#                             envs: DOCKER_USERNAME,IMAGE_TAG
+
+#                             script: |
+#                                 echo "🚀 Kubernetes Deployment Started..."
+
+#                                 export TAG=$IMAGE_TAG
+
+#                                 echo "Using tag: $TAG"
+
+#                                 # 🔄 Update image directly in deployment
+#                                 kubectl set image deployment/backend \
+#                                     backend=$DOCKER_USERNAME/backend:$TAG
+
+#                                 kubectl set image deployment/frontend \
+#                                     frontend=$DOCKER_USERNAME/frontend:$TAG
+
+#                                 # 🚀 Apply (if needed first time)
+#                                 kubectl apply -f 
+
+#                                 # 📋 Check status
+#                                 kubectl rollout status deployment/backend
+#                                 kubectl rollout status deployment/frontend
+
+#                                 kubectl get pods
+#                                 kubectl get svc
+
+#                                 echo "✅ Kubernetes Deployment Completed!"
+
+name: DevOps CI/CD
 
 on:
     push:
         branches:
         - main
-        - develop_app
-        - ci
-        - cd
-        - Docker_Deplyment
-        - docker_cicd
-        - dockerhub
-        - image_version
         - deploy_2
-    workflow_dispatch:
-
-env:
-    DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-    IMAGE_TAG: ${{ github.run_number }}
 
 jobs:
 
-# ─────────────────────────────────────────────
     build:
-        name: Build Docker Images
         runs-on: ubuntu-latest
 
         steps:
-            -   name: Checkout code
-                uses: actions/checkout@v4
+            -   name: Checkout
+                uses: actions/checkout@v3
 
-            -   name: Build Backend
+            -   name: Login Docker Hub
                 run: |
-                    docker build -t $DOCKER_USERNAME/backend:$IMAGE_TAG ./backend
+                    echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-            -   name: Build Frontend
+            -   name: Build & Push Backend
                 run: |
-                    docker build -t $DOCKER_USERNAME/frontend:$IMAGE_TAG ./frontend
+                    docker build -t ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.run_number }} ./backend
+                    docker push ${{ secrets.DOCKER_USERNAME }}/backend:${{ github.run_number }}
 
+            -   name: Build & Push Frontend
+                run: |
+                    docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }} ./frontend
+                    docker push ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }}
 
-# ─────────────────────────────────────────────
-    # push:
-    #     name: Push Docker Images
-    #     needs: build
-    #     runs-on: ubuntu-latest
-
-    #     steps:
-    #     -   name: Checkout code
-    #         uses: actions/checkout@v4
-
-    #     -   name: Login to Docker Hub
-    #         run: |
-    #             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
-
-    #     -   name: Push Backend
-    #         run: docker push $DOCKER_USERNAME/backend:$IMAGE_TAG
-
-    #     -   name: Push Frontend
-    #         run: docker push $DOCKER_USERNAME/frontend:$IMAGE_TAG
-    push:
-        name: Push Docker Images
+    deploy:
         needs: build
         runs-on: ubuntu-latest
 
         steps:
-            -   name: Checkout code
-                uses: actions/checkout@v4
+        -   name: Checkout
+            uses: actions/checkout@v3
 
-            -   name: Login to Docker Hub
-                run: |
-                    echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        -   name: Replace Image Tag
+            run: |
+                sed -i "s|backend:.*|backend:${{ github.run_number }}|g" k8s/backend-deployment.yaml
+                sed -i "s|frontend:.*|frontend:${{ github.run_number }}|g" k8s/frontend-deployment.yaml
 
-            # 🔥 BUILD AGAIN (IMPORTANT)
-            -   name: Build Backend
-                run: docker build -t $DOCKER_USERNAME/backend:$IMAGE_TAG ./backend
+        -   name: Deploy to EC2 Kubernetes
+            uses: appleboy/ssh-action@v1.0.0
+            with:
+                host: ${{ secrets.EC2_HOST }}
+                username: ubuntu
+                key: ${{ secrets.EC2_SSH_KEY }}
 
-            -   name: Build Frontend
-                run: docker build -t $DOCKER_USERNAME/frontend:$IMAGE_TAG ./frontend
+                script: |
+                    echo "🚀 Deploying to Kubernetes..."
 
-            -   name: Push Backend
-                run: docker push $DOCKER_USERNAME/backend:$IMAGE_TAG
+                    # Apply directly from STDIN (NO FILE STORAGE)
+                    cat <<EOF | kubectl apply -f -
+                    $(cat k8s/backend-deployment.yaml)
+                    ---
+                    $(cat k8s/backend-service.yaml)
+                    ---
+                    $(cat k8s/frontend-deployment.yaml)
+                    ---
+                    $(cat k8s/frontend-service.yaml)
+                    EOF
 
-            -   name: Push Frontend
-                run: docker push $DOCKER_USERNAME/frontend:$IMAGE_TAG
+                    kubectl get pods
+                    kubectl get svc
 
+                    echo "✅ Deployment Done"
 
-# ─────────────────────────────────────────────
-    deploy:
-            name: Deploy on EC2 (No Compose)
-            needs: push
-            runs-on: ubuntu-latest
-
-            steps:
-                # -   name: Deploy via SSH
-                #     uses: appleboy/ssh-action@v1.0.0
-                #     with:
-                #         host: ${{ secrets.EC2_HOST }}
-                #         username: ubuntu
-                #         key: ${{ secrets.EC2_SSH_KEY }}
-
-                #         # 👇 ADD THIS
-                #         envs: DOCKER_USERNAME,IMAGE_TAG
-
-                #         script: |
-                #             echo "🚀 Starting Deployment..."
-
-                #             export TAG=$IMAGE_TAG
-
-                #             echo "Using Docker Username: $DOCKER_USERNAME"
-
-                #             # 🛑 Stop & remove old containers
-                #             echo "🛑 Cleaning old containers..."
-                #             sudo docker stop backend || true
-                #             sudo docker rm backend || true
-
-                #             sudo docker stop frontend || true
-                #             sudo docker rm frontend || true
-
-                #             # 🧹 Clean unused images
-                #             sudo docker image prune -af
-
-                #             # 📥 Pull latest images
-                #             echo "📥 Pulling images..."
-                #             sudo docker pull $DOCKER_USERNAME/backend:$TAG
-                #             sudo docker pull $DOCKER_USERNAME/frontend:$TAG
-
-                #             # 🚀 Run backend container
-                #             echo "🚀 Starting backend..."
-                #             sudo docker run -d \
-                #             --name backend \
-                #             -p 5000:5000 \
-                #             --restart unless-stopped \
-                #             $DOCKER_USERNAME/backend:$TAG
-
-                #             # 🚀 Run frontend container
-                #             echo "🚀 Starting frontend..."
-                #             sudo docker run -d \
-                #             --name frontend \
-                #             -p 3000:3000 \
-                #             --restart unless-stopped \
-                #             $DOCKER_USERNAME/frontend:$TAG
-
-                #             # 📋 Status check
-                #             echo "📋 Running containers:"
-                #             sudo docker ps
-
-                #             echo "📜 Logs (last 10 lines):"
-                #             sudo docker logs backend --tail 10 || true
-                #             sudo docker logs frontend --tail 10 || true
-
-                #             echo "✅ Deployment Completed!"
-                    -   name: Deploy via SSH (Kubernetes Clean)
-                        uses: appleboy/ssh-action@v1.0.0
-                        with:
-                            host: ${{ secrets.EC2_HOST }}
-                            username: ubuntu
-                            key: ${{ secrets.EC2_SSH_KEY }}
-                            envs: DOCKER_USERNAME,IMAGE_TAG
-
-                            script: |
-                                echo "🚀 Kubernetes Deployment Started..."
-
-                                export TAG=$IMAGE_TAG
-
-                                echo "Using tag: $TAG"
-
-                                # 🔄 Update image directly in deployment
-                                kubectl set image deployment/backend \
-                                    backend=$DOCKER_USERNAME/backend:$TAG
-
-                                kubectl set image deployment/frontend \
-                                    frontend=$DOCKER_USERNAME/frontend:$TAG
-
-                                # 🚀 Apply (if needed first time)
-                                kubectl apply -f 
-
-                                # 📋 Check status
-                                kubectl rollout status deployment/backend
-                                kubectl rollout status deployment/frontend
-
-                                kubectl get pods
-                                kubectl get svc
-
-                                echo "✅ Kubernetes Deployment Completed!"
+                    
